@@ -1,7 +1,7 @@
 # Bikesharing
 
 a.	What is the overall purpose of this project?
-  To forcast bike rental demand in the Capital Bikeshare program in Washington, D.C. by combine historical usage patterns with weather data. 
+  To forecast bike rental demand in the Capital Bike share program in Washington, D.C. by combine historical usage patterns with weather data. 
 
 b.	What do each file in your repository do?
 
