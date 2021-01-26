@@ -45,6 +45,7 @@ ggplot(data = bike, aes(x= season, y= count)) +
 
 
 ## Dummy variable encoding : one-hot encoding 
+#(break categorical variable into 1 and 0)
 dummyVars(count~season, data = bike, sep = "_") %>%
   predict(bike) %>% as.data.frame() %>%
   bind_cols(bike %>% select(-season), .)

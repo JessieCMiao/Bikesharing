@@ -17,26 +17,28 @@ bike <- bike %>% select(-casual, -registered)
 
 ## Feature Engineering 
 bike$hour <- hour(bike$datetime) %>% as.factor()
+bike$times <- as.POSIXct(strftime(ymd_hms(bike$datetime), format="%H:%M:%S"), format="%H:%M:%S")
 bike$season <- as.factor(bike$season)
 
+
 ## Exploratory Plots 
-ggplot(data=bike, aes(x= hour, y=count, color = as.factor(season))) + 
+ggplot(data=bike, aes(x= times, y=count, color = as.factor(season))) + 
   geom_point()
 
 
 ## Target encoding (popular one)
-bike$hour <- lm(count~hour, data = bike) %>% 
+bike$times <- lm(count~times, data = bike) %>% 
   predict(., newdata = bike %>% select(-count))
 
 
-bike.model <- train(form = count~hour + holiday + temp,
+bike.model <- train(form = count~ times + holiday + temp,
                     data = bike %>% filter (id =='train'),
-                    method = "rf", 
-                    tuneLength = 5,
+                    method = "rf", #regression of the assumption
+                    tuneLength = 5, #how its evaulating prediction
                     trControl = trainControl(
                       method = "boot", 
-                      number = 10, 
-                      repeats = 2))
+                      number = 10, #how many sample
+                      repeats = 2)) 
 
 
 plot(bike.model)

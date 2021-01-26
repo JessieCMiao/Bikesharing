@@ -42,7 +42,7 @@ bike$weather <- lm(count~weather, data = bike) %>%
 bike.model <- train(form = count~weather + holiday + humidity + windspeed,
                     data = bike %>% filter (id =='train'),
                     method = "rf", 
-                    tuneLength = 5,
+                    tuneLength = 5, #run regression model 
                     trControl = trainControl(
                       method = "oob", 
                       number = 10))
