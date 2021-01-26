@@ -21,3 +21,4 @@ bike$times <- as.POSIXct(strftime(ymd_hms(bike$datetime), format="%H:%M:%S"), fo
 bike$weekday   <- wday(ymd_hms(bike$datetime), label=TRUE) %>% as.factor()
 bike$season <- as.factor(bike$season)
 bike$weather <- as.factor(bike$weather)
+bike
