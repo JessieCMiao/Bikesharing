@@ -19,6 +19,7 @@ bike <- bike %>% select(-casual, -registered)
 bike$hour <- hour(bike$datetime) %>% as.factor()
 bike$times <- as.POSIXct(strftime(ymd_hms(bike$datetime), format="%H:%M:%S"), format="%H:%M:%S")
 bike$season <- as.factor(bike$season)
+bike$log_count <- log10(bike$count)
 
 
 ## Exploratory Plots 
@@ -27,23 +28,27 @@ ggplot(data=bike, aes(x= times, y=count, color = as.factor(season))) +
 
 
 ## Target encoding (popular one)
-bike$times <- lm(count~times, data = bike) %>% 
+bike$times <- lm(log_count~times, data = bike) %>% 
+  predict(., newdata = bike %>% select(-count))
+bike$hour <- lm(log_count~hour, data = bike) %>% 
   predict(., newdata = bike %>% select(-count))
 
 
-bike.model <- train(form = count~ times + holiday + temp,
+bike.model <- train(form = log_count~ times + hour + holiday + temp,
                     data = bike %>% filter (id =='train'),
-                    method = "rf", #regression of the assumption
+                    method = "ranger", #regression of the assumption
                     tuneLength = 5, #how its evaulating prediction
                     trControl = trainControl(
-                      method = "boot", 
-                      number = 10, #how many sample
-                      repeats = 2)) 
+                      method = "repeatedcv", 
+                      number = 10, 
+                      repeats = 2))#how many sample
+                    
+
 
 
 plot(bike.model)
 preds <- predict(bike.model, newdata = bike %>% filter(id =="test"))
 submission <- data.frame(datetime = bike %>% filter (id =="test") %>% pull(datetime),
-                         count = preds)
+                         count = 10^preds) #change back log_count
 
 write.csv(x = submission, file = "./MyFifthSubmission.csv", row.names = FALSE)
