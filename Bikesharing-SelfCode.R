@@ -4,6 +4,7 @@ library(DataExplorer)
 library(caret)
 library(vroom)
 library(lubridate)
+library(ggplot2)
 
 ## Read in the data 
 bike.train <- vroom("../Bikesharing/train.csv")
@@ -24,6 +25,11 @@ bike$log_count <- log10(bike$count)
 
 ## Exploratory Plots 
 ggplot(data=bike, aes(x= times, y=count, color = as.factor(season))) + 
+  geom_point()
+ggplot(bike) + 
+  geom_histogram(mapping = aes(x=count), bins= 30,
+                 fill = 'gray', col = 'black') ##dist of count
+ggplot(data=bike, aes(x= hour, y=count, color = as.factor(season))) + 
   geom_point()
 
 
