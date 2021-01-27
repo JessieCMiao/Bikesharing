@@ -1,0 +1,8 @@
+"0","conf <- confint(weight.lm, level = 0.90)"
+"0","conf.mage <- c(conf[""Mage"", ""5 %""], conf[""Mage"", ""95 %""])"
+"0","conf.mage"
+"1","[1]"
+"1"," -6.559754"
+"1"," -1.027749"
+"1","
+"

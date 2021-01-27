@@ -1,0 +1,6 @@
+"0","#Boxplot for baby birth weight and mother's race"
+"0","ggplot(data = weight, mapping = aes(x = Race, y = BirthWeight)) + "
+"0","  geom_boxplot() + "
+"0","  ggtitle(""Boxplots of Birth Weight by Race"") +"
+"0","  xlab(""Race"") + "
+"0","  ylab(""Birth Weight (in kilograms)"")"

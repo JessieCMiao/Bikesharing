@@ -1,0 +1,7 @@
+"0","# Scatter plot for mothers age and baby birth weight"
+"0","ggplot(data = weight, mapping = aes(x = Mage, y = BirthWeight)) +"
+"0","  geom_point() + "
+"0","  geom_smooth(se = FALSE) + "
+"0","  ggtitle('Scatterplot of Birth Weight by Age of Mother') +"
+"0","  xlab('Age of Mother') + "
+"0","  ylab('Birth Weight')"

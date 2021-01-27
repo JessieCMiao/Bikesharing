@@ -1,0 +1,7 @@
+"0","ggplot(data = weight, "
+"0","       mapping = aes(x = Gage, y = BirthWeight, color = Gen)) + "
+"0","  geom_point() + "
+"0","  geom_smooth(se = FALSE) + "
+"0","  ggtitle(""Scatterplot of Birth Weight by Gestational Age"") +"
+"0","  xlab(""Gestational Age (in weeks)"") +"
+"0","  ylab(""Birth Weight (in kilograms)"")"

@@ -1,0 +1,3 @@
+"0","#Reorder Birthweight data columns to have birth weight as last column "
+"0","weights_ordered <- weight[,c(2,3,4,5,1)]"
+"0","ggpairs(weights_ordered) + ggtitle('Pairs Plot of Birth Weight Data')"

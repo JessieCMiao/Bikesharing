@@ -1,0 +1,16 @@
+"0","predict.lm(weight.lm, 
+           newdata= data.frame(Mage= 26, Gage= 37, Race=""hisp"",
+                               Gen=""Female""),
+           interval=""prediction"", level=0.99)
+"
+"1"," "
+"1","     fit"
+"1","      lwr"
+"1","      upr"
+"1","
+1"
+"1"," 2741.04"
+"1"," 2011.669"
+"1"," 3470.412"
+"1","
+"

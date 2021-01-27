@@ -1,0 +1,22 @@
+"0","library(ggplot2) # Import GG Plot for professional graphs"
+"0","library(GGally) #Improt pairs plot"
+"0","library(car) #Import avPlot"
+"0","library(MASS) #For standardized residuals plot"
+"0","library(lmtest) # For B-P test"
+"0","library(magrittr) #pipe command "
+"0","library(multcomp) #generalized linear hypothesis test"
+"2","Loading required package: mvtnorm
+"
+"2","Loading required package: survival
+"
+"2","Loading required package: TH.data
+"
+"2","
+Attaching package: ‘TH.data’
+
+"
+"2","The following object is masked from ‘package:MASS’:
+
+    geyser
+
+"

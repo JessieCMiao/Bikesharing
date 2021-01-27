@@ -1,0 +1,3 @@
+"0","ggplot(bike_data) + geom_histogram(mapping = aes(x=count), bins = 20, fill = 'gray', col = 'black') ##dist of count"
+"2","Error in ggplot(bike_data) : object 'bike_data' not found
+"
