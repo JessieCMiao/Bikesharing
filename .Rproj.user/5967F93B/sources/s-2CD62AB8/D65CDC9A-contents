@@ -1,0 +1,198 @@
+---
+title: "Bike Sharing Demand"
+output: html_document
+---
+
+##TODO add preprocessing, look into more ensemble methods, train on all data, remove lm
+##setup
+```{r}
+library(reticulate)
+library(tidyverse)
+library(DataExplorer)
+library(caret)
+library(vroom)
+library(lubridate)
+library(sigmoid)
+library(corrplot)
+library(caretEnsemble)
+library(doParallel)
+library(Metrics)
+setwd('/Users/bradeneberhard/Documents/Winter 2021/495R/Bike Sharing Demand')
+train_data <- vroom('train.csv')
+test_data <- vroom('test.csv')
+sample_submission <- vroom('sampleSubmission.csv')
+bike_data <- bind_rows(train=train_data, test=test_data, .id='id')
+bike_data$casual <- NULL
+bike_data$registered <- NULL
+```
+##cleaning
+```{r}
+bike_data$season <- as.factor(bike_data$season)
+bike_data$holiday <- as.factor(bike_data$holiday)
+bike_data$workingday <- as.factor(bike_data$workingday)
+bike_data$month <- as.factor(month(bike_data$datetime))
+bike_data$hour <- as.factor(hour(bike_data$datetime))
+bike_data$weather <- as.factor(bike_data$weather)
+bike_data$day <- as.factor(weekdays(as.Date(bike_data$datetime)))
+bike_data$weekday <- as.factor(bike_data$day %in% c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'))
+bike_data$year <- bike_data$datetime %>% year()
+bike_data$log_count <- log10(bike_data$count)
+```
+##encoding
+```{r}
+bike_data$target_season <- lm(log_count~season, data=bike_data) %>% 
+  predict(., newdata=bike_data %>% select(-log_count))
+bike_data$target_month <- lm(log_count~month, data=bike_data) %>% 
+  predict(., newdata=bike_data %>% select(-log_count))
+bike_data$target_hour <- lm(log_count~hour, data=bike_data) %>% 
+  predict(., newdata=bike_data %>% select(-log_count))
+bike_data$target_weather <- lm(log_count ~ weather, data = bike_data) %>%
+  predict(., newdata = bike_data %>% select(-log_count))
+bike_data$target_year <- lm(log_count ~ year, data = bike_data) %>%
+  predict(., newdata = bike_data %>% select(-log_count))
+```
+
+
+##visualize
+```{r}
+ggplot(bike_data) + geom_histogram(mapping = aes(x=count), bins = 20, fill = 'gray', col = 'black') ##dist of count
+
+aggregate(bike_data[bike_data$id == 'train',] %>% select(count),list(bike_data[bike_data$id == 'train',]$day), mean ) ##mean count by day
+ggplot(bike_data, aes(x = day, y = count, color = day)) + geom_boxplot()
+
+ggplot(data = bike_data[bike_data$id == 'train',], aes(x=datetime, y=count, color=as.factor(season))) +geom_point() ##season
+ggplot(data = bike_data, aes(x=hour(datetime), y=count, color=as.factor(hour(datetime)))) + geom_point() ##hour
+ggplot(data = bike_data, aes(x=year, y=count)) + geom_boxplot() ## year
+
+ggplot(bike_data, aes(x=weekday, y=count)) + geom_boxplot() ##count boxplot by weekday
+
+plot_correlation(bike_data[bike_data$id == 'train',], type='continuous') ##correlation heatmap
+
+boxplot(contin_vars[,7]) ##moldable code to check for outliers -- none found
+contin_vars %>% select(windspeed) %>% filter(windspeed> 50)
+
+ggplot(data = bike_data) + geom_histogram(mapping=aes(x=humidity)) ##hist of humidity
+
+ggplot(data=bike_data, aes(x=log_count))+geom_histogram() ##log count
+
+```
+
+##data partition
+```{r}
+set.seed(123)
+train_data <- bike_data %>% filter(id == 'train')
+val_data <- bike_data %>% filter(id == 'test')
+train_index <- createDataPartition(train_data$id, p=0.8,list=FALSE)
+
+train <- train_data[train_index,]
+test <- train_data[-train_index,]
+```
+
+##ensemble
+```{r}
+example_features <- c('target_season', 'holiday', 'workingday', 'target_weather', 'atemp', 'humidity', 'year', 'target_hour', 'weekday', 'log_count')
+
+registerDoParallel(4)
+getDoParWorkers()
+set.seed(123)
+my_control <- trainControl(method = 'cv',
+                           number = 5, 
+                           savePredictions = 'final',
+                           allowParallel = TRUE)
+train_set <- train %>% select(example_features)
+test_set <- test %>% select(example_features)
+model_list <- caretList(log_count ~ . - count,data = train_set,
+                        trControl = my_control,
+                        methodList = c('lm', 'svmRadial', 'rf', 
+                                       'xgbTree', 'xgbLinear'),
+                        tuneList = NULL,
+                        continue_on_fail = FALSE)
+```
+
+
+```{r}
+resamples <- resamples(model_list)
+dotplot(resamples, metric = 'RMSE')
+
+set.seed(222)
+ensemble_1 <- caretEnsemble(model_list, 
+                            metric = 'RMSE', 
+                            trControl = my_control)
+plot(ensemble_1)
+ensemble_2 <- caretStack(model_list, 
+                         method = 'glmnet', 
+                         metric = 'RMSE', 
+                         trControl = my_control)
+print(ensemble_2)
+```
+
+##predictions
+```{r}
+pred_lm <- predict.train(model_list$lm, newdata = test_set)
+pred_svm <- predict.train(model_list$svmRadial, newdata = test_set)
+pred_rf <- predict.train(model_list$rf, newdata = test_set)
+pred_xgbT <- predict.train(model_list$xgbTree, newdata = test_set)
+pred_xgbL <- predict.train(model_list$xgbLinear, newdata = test_set)
+predict_ens1 <- predict(ensemble_1, newdata = test_set)
+predict_ens2 <- predict(ensemble_2, newdata = test_set)
+
+pred_rmsle <- data.frame(ensemble_1 = rmsle(relu(predict_ens1), test_set$count),
+                        ensemble_2 = rmsle(relu(predict_ens2), test_set$count),
+                        LM = rmsle(relu(pred_lm), test_set$count),
+                        SVM = rmsle(relu(pred_svm), test_set$count),
+                        RF = rmsle(relu(pred_rf), test_set$count),
+                        XGBT = rmsle(relu(pred_xgbT), test_set$count),
+                        XGBL = rmsle(relu(pred_xgbL), test_set$count))
+print(pred_rmsle)
+
+predict_ens1 <- predict(ensemble_1, newdata = test_set)
+exp_pred_ens1 <- 10^predict_ens1
+results <- rmsle(exp_pred_ens1, test_set$count)
+print(results)
+
+new_features <- c('target_season', 'holiday', 'workingday', 'weather', 'atemp', 'count', 'humidity', 'year', 'target_hour', 'weekday')
+val_data[is.na(val_data)] <- 0
+relu_output <- predict(ensemble_1, newdata=val_data %>% select(new_features))
+relu_output <- 10^relu_output
+test_set[(which(pred_rmsle == max(pred_rmsle))),]
+```
+
+##final training
+```{r}
+final_features <- c('target_season', 'holiday', 'workingday', 'weather', 'atemp', 'humidity', 'year', 'target_hour', 'weekday', 'log_count')
+
+set.seed(123)
+train_data <- bike_data %>% filter(id == 'train') %>% select(final_features)
+registerDoParallel(4)
+getDoParWorkers()
+set.seed(123)
+my_control <- trainControl(method = 'cv',
+                           number = 5, 
+                           savePredictions = 'final',
+                           allowParallel = TRUE)
+model_list_final <- caretList(log_count ~ .,data = train_data,
+                        trControl = my_control,
+                        methodList = c('lm', 'svmRadial', 'rf', 
+                                       'xgbTree', 'xgbLinear'),
+                        tuneList = NULL,
+                        continue_on_fail = FALSE)
+set.seed(222)
+final_ensemble <- caretEnsemble(model_list_final, 
+                            metric = 'RMSE', 
+                            trControl = my_control)
+predict_final_ens <- predict(final_ensemble, newdata = val_data %>% select(final_features))
+exp_predict_final_ens<- 10^predict_final_ens
+
+output <- data.frame(val_data$datetime, exp_predict_final_ens)
+colnames(output) <- c('datetime', 'count')
+write.csv(output, './output.final3.csv', row.names = F)
+```
+
+
+##write results
+```{r}
+output <- data.frame(val_data$datetime, relu_output)
+colnames(output) <- c('datetime', 'count')
+write.csv(output, './output.log_ens2.csv', row.names = F)
+```
+
